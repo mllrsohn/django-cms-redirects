@@ -1,6 +1,7 @@
 from cms_redirects.models import CMSRedirect
 from django import http
 from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
 
 
 def get_redirect(old_path):
@@ -20,7 +21,7 @@ def remove_query(path):
     return path.split('?', 1)[0]
 
 
-class RedirectFallbackMiddleware(object):
+class RedirectFallbackMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
         if isinstance(exception, http.Http404):
 
