@@ -29,6 +29,12 @@ class RedirectFallbackMiddleware(MiddlewareMixin):
             path = request.get_full_path()
             r = get_redirect(path)
 
+            # Isolate the query string
+            if path.count('?'):
+                qs = path.split('?')[1]
+            else:
+                qs = None
+
             # It could be that we need to try without a trailing slash.
             if r is None and settings.APPEND_SLASH:
                 r = get_redirect(remove_slash(path))
@@ -44,15 +50,26 @@ class RedirectFallbackMiddleware(MiddlewareMixin):
 
             if r is not None:
                 if r.page:
+                    new_url = r.page.get_absolute_url()
+                    if qs:
+                        new_url = new_url + '?' + qs
                     if r.response_code == '302':
-                        return http.HttpResponseRedirect(r.page.get_absolute_url())
+                        return http.HttpResponseRedirect(new_url)
                     else:
-                        return http.HttpResponsePermanentRedirect(r.page.get_absolute_url())
+                        return http.HttpResponsePermanentRedirect(new_url)
                 if r.new_path == '':
                     return http.HttpResponseGone()
                 if r.response_code == '302':
-                    return http.HttpResponseRedirect(r.new_path)
+                    new_url = r.new_path
+                    # Only append the querystring if the new path doesn't have it's own
+                    if qs and not r.new_path.count('?'):
+                        new_url = new_url + '?' + qs
+                    return http.HttpResponseRedirect(new_url)
                 else:
-                    return http.HttpResponsePermanentRedirect(r.new_path)
+                    new_url = r.new_path
+                    # Only append the querystring if the new path doesn't have it's own
+                    if qs and not r.new_path.count('?'):
+                        new_url = new_url + '?' + qs
+                    return http.HttpResponsePermanentRedirect(new_url)
 
 
